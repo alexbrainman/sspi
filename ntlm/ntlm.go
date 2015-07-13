@@ -14,7 +14,7 @@ import (
 	"time"
 	"unsafe"
 
-	"sspi"
+	"github.com/alexbrainman/sspi"
 )
 
 // PackageInfo contains NTLM SSP package description.

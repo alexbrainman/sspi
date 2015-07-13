@@ -7,8 +7,9 @@
 package sspi_test
 
 import (
-	"sspi"
 	"testing"
+
+	"github.com/alexbrainman/sspi"
 )
 
 func TestQueryPackageInfo(t *testing.T) {

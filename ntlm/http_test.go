@@ -16,7 +16,7 @@ import (
 	"strings"
 	"testing"
 
-	"sspi/ntlm"
+	"github.com/alexbrainman/sspi/ntlm"
 )
 
 var (
