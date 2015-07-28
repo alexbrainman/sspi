@@ -20,6 +20,10 @@ var (
 	procDeleteSecurityContext      = modsecur32.NewProc("DeleteSecurityContext")
 	procImpersonateSecurityContext = modsecur32.NewProc("ImpersonateSecurityContext")
 	procRevertSecurityContext      = modsecur32.NewProc("RevertSecurityContext")
+	procQueryContextAttributesW    = modsecur32.NewProc("QueryContextAttributesW")
+	procEncryptMessage             = modsecur32.NewProc("EncryptMessage")
+	procDecryptMessage             = modsecur32.NewProc("DecryptMessage")
+	procApplyControlToken          = modsecur32.NewProc("ApplyControlToken")
 )
 
 func QuerySecurityPackageInfo(pkgname *uint16, pkginfo **SecPkgInfo) (ret syscall.Errno) {
@@ -78,6 +82,30 @@ func ImpersonateSecurityContext(context *CtxtHandle) (ret syscall.Errno) {
 
 func RevertSecurityContext(context *CtxtHandle) (ret syscall.Errno) {
 	r0, _, _ := syscall.Syscall(procRevertSecurityContext.Addr(), 1, uintptr(unsafe.Pointer(context)), 0, 0)
+	ret = syscall.Errno(r0)
+	return
+}
+
+func QueryContextAttributes(context *CtxtHandle, attribute uint32, buf *byte) (ret syscall.Errno) {
+	r0, _, _ := syscall.Syscall(procQueryContextAttributesW.Addr(), 3, uintptr(unsafe.Pointer(context)), uintptr(attribute), uintptr(unsafe.Pointer(buf)))
+	ret = syscall.Errno(r0)
+	return
+}
+
+func EncryptMessage(context *CtxtHandle, qop uint32, message *SecBufferDesc, messageseqno uint32) (ret syscall.Errno) {
+	r0, _, _ := syscall.Syscall6(procEncryptMessage.Addr(), 4, uintptr(unsafe.Pointer(context)), uintptr(qop), uintptr(unsafe.Pointer(message)), uintptr(messageseqno), 0, 0)
+	ret = syscall.Errno(r0)
+	return
+}
+
+func DecryptMessage(context *CtxtHandle, message *SecBufferDesc, messageseqno uint32, qop *uint32) (ret syscall.Errno) {
+	r0, _, _ := syscall.Syscall6(procDecryptMessage.Addr(), 4, uintptr(unsafe.Pointer(context)), uintptr(unsafe.Pointer(message)), uintptr(messageseqno), uintptr(unsafe.Pointer(qop)), 0, 0)
+	ret = syscall.Errno(r0)
+	return
+}
+
+func ApplyControlToken(context *CtxtHandle, input *SecBufferDesc) (ret syscall.Errno) {
+	r0, _, _ := syscall.Syscall(procApplyControlToken.Addr(), 2, uintptr(unsafe.Pointer(context)), uintptr(unsafe.Pointer(input)), 0)
 	ret = syscall.Errno(r0)
 	return
 }

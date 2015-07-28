@@ -19,9 +19,13 @@ const (
 	SEC_I_COMPLETE_NEEDED       = syscall.Errno(590611)
 	SEC_I_CONTINUE_NEEDED       = syscall.Errno(590610)
 
+	SEC_E_CONTEXT_EXPIRED    = syscall.Errno(0x80090317) // not sure if the value is valid
+	SEC_E_INCOMPLETE_MESSAGE = syscall.Errno(0x80090318)
+
 	NTLMSP_NAME             = "NTLM"
 	MICROSOFT_KERBEROS_NAME = "Kerberos"
 	NEGOSSP_NAME            = "Negotiate"
+	UNISP_NAME              = "Microsoft Unified Security Protocol Provider"
 )
 
 type SecPkgInfo struct {
@@ -58,6 +62,7 @@ type CredHandle struct {
 const (
 	SECURITY_NATIVE_DREP = 16
 
+	SECBUFFER_DATA           = 1
 	SECBUFFER_TOKEN          = 2
 	SECBUFFER_PKG_PARAMS     = 3
 	SECBUFFER_MISSING        = 4
@@ -69,6 +74,7 @@ const (
 	SECBUFFER_READONLY       = 0x80000000
 	SECBUFFER_ATTRMASK       = 0xf0000000
 	SECBUFFER_VERSION        = 0
+	SECBUFFER_EMPTY          = 0
 
 	ISC_REQ_DELEGATE               = 1
 	ISC_REQ_MUTUAL_AUTH            = 2
@@ -126,3 +132,7 @@ type SecBufferDesc struct {
 //sys	DeleteSecurityContext(context *CtxtHandle) (ret syscall.Errno) = secur32.DeleteSecurityContext
 //sys	ImpersonateSecurityContext(context *CtxtHandle) (ret syscall.Errno) = secur32.ImpersonateSecurityContext
 //sys	RevertSecurityContext(context *CtxtHandle) (ret syscall.Errno) = secur32.RevertSecurityContext
+//sys	QueryContextAttributes(context *CtxtHandle, attribute uint32, buf *byte) (ret syscall.Errno) = secur32.QueryContextAttributesW
+//sys	EncryptMessage(context *CtxtHandle, qop uint32, message *SecBufferDesc, messageseqno uint32) (ret syscall.Errno) = secur32.EncryptMessage
+//sys	DecryptMessage(context *CtxtHandle, message *SecBufferDesc, messageseqno uint32, qop *uint32) (ret syscall.Errno) = secur32.DecryptMessage
+//sys	ApplyControlToken(context *CtxtHandle, input *SecBufferDesc) (ret syscall.Errno) = secur32.ApplyControlToken

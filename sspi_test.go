@@ -17,6 +17,7 @@ func TestQueryPackageInfo(t *testing.T) {
 		sspi.NTLMSP_NAME,
 		sspi.MICROSOFT_KERBEROS_NAME,
 		sspi.NEGOSSP_NAME,
+		sspi.UNISP_NAME,
 	}
 	for _, name := range pkgnames {
 		pi, err := sspi.QueryPackageInfo(name)

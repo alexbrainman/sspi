@@ -28,18 +28,6 @@ func init() {
 	}
 }
 
-const _SEC_WINNT_AUTH_IDENTITY_UNICODE = 0x2
-
-type _SEC_WINNT_AUTH_IDENTITY struct {
-	User           *uint16
-	UserLength     uint32
-	Domain         *uint16
-	DomainLength   uint32
-	Password       *uint16
-	PasswordLength uint32
-	Flags          uint32
-}
-
 func acquireCredentials(creduse uint32, ai *_SEC_WINNT_AUTH_IDENTITY) (*sspi.Credentials, error) {
 	c, err := sspi.AcquireCredentials(sspi.NTLMSP_NAME, creduse, (*byte)(unsafe.Pointer(ai)))
 	if err != nil {
@@ -102,6 +90,37 @@ func AcquireServerCredentials() (*sspi.Credentials, error) {
 	return acquireCredentials(sspi.SECPKG_CRED_INBOUND, nil)
 }
 
+func updateContext(c *sspi.Context, dst, src []byte) (authCompleted bool, n int, err error) {
+	var inBuf, outBuf [1]sspi.SecBuffer
+	inBuf[0].Set(sspi.SECBUFFER_TOKEN, src)
+	inBufs := &sspi.SecBufferDesc{
+		Version:      sspi.SECBUFFER_VERSION,
+		BuffersCount: 1,
+		Buffers:      &inBuf[0],
+	}
+	outBuf[0].Set(sspi.SECBUFFER_TOKEN, dst)
+	outBufs := &sspi.SecBufferDesc{
+		Version:      sspi.SECBUFFER_VERSION,
+		BuffersCount: 1,
+		Buffers:      &outBuf[0],
+	}
+	ret := c.Update(nil, outBufs, inBufs)
+	switch ret {
+	case sspi.SEC_E_OK:
+		// session established -> return success
+		return true, int(outBuf[0].BufferSize), nil
+	case sspi.SEC_I_COMPLETE_NEEDED, sspi.SEC_I_COMPLETE_AND_CONTINUE:
+		ret = sspi.CompleteAuthToken(c.Handle, outBufs)
+		if ret != sspi.SEC_E_OK {
+			return false, 0, ret
+		}
+	case sspi.SEC_I_CONTINUE_NEEDED:
+	default:
+		return false, 0, ret
+	}
+	return false, int(outBuf[0].BufferSize), nil
+}
+
 // ClientContext is used by the client to manage all steps of NTLM negotiation.
 type ClientContext struct {
 	sctxt *sspi.Context
@@ -114,7 +133,8 @@ type ClientContext struct {
 // start NTLM negotiation sequence.
 func NewClientContext(cred *sspi.Credentials) (*ClientContext, []byte, error) {
 	negotiate := make([]byte, PackageInfo.MaxToken)
-	c, authCompleted, n, err := sspi.NewClientContext(cred, sspi.ISC_REQ_CONNECTION, negotiate)
+	c := sspi.NewClientContext(cred, sspi.ISC_REQ_CONNECTION)
+	authCompleted, n, err := updateContext(c, negotiate, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -145,7 +165,7 @@ func (c *ClientContext) Expiry() time.Time {
 // authenticate message to be returned to the server.
 func (c *ClientContext) Update(challenge []byte) ([]byte, error) {
 	authenticate := make([]byte, PackageInfo.MaxToken)
-	authCompleted, n, err := c.sctxt.Update(authenticate, challenge)
+	authCompleted, n, err := updateContext(c.sctxt, authenticate, challenge)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +193,8 @@ type ServerContext struct {
 // NTLM negotiation sequence.
 func NewServerContext(cred *sspi.Credentials, negotiate []byte) (*ServerContext, []byte, error) {
 	challenge := make([]byte, PackageInfo.MaxToken)
-	c, authCompleted, n, err := sspi.NewServerContext(cred, sspi.ISC_REQ_CONNECTION, challenge, negotiate)
+	c := sspi.NewServerContext(cred, sspi.ASC_REQ_CONNECTION)
+	authCompleted, n, err := updateContext(c, challenge, negotiate)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -202,7 +223,7 @@ func (c *ServerContext) Expiry() time.Time {
 // Update completes server part of NTLM negotiation c. It uses
 // authenticate message received from the client.
 func (c *ServerContext) Update(authenticate []byte) error {
-	authCompleted, n, err := c.sctxt.Update(nil, authenticate)
+	authCompleted, n, err := updateContext(c.sctxt, nil, authenticate)
 	if err != nil {
 		return err
 	}
