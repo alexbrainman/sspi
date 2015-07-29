@@ -10,6 +10,8 @@ import (
 	"syscall"
 )
 
+// TODO: maybe put all these into a separate package, like sspi/schannel/winapi or similar
+
 const (
 	__SCHANNEL_CRED_VERSION = 4
 
