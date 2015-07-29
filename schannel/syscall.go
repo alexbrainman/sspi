@@ -98,3 +98,10 @@ type _SecPkgContext_KeyInfo struct {
 	SignatureAlgorithm     uint32
 	EncryptAlgorithm       uint32
 }
+
+// TODO: SecPkgContext_ConnectionInfo
+
+// TODO: SECPKG_ATTR_REMOTE_CERT_CONTEXT
+// TODO: SECPKG_ATTR_LOCAL_CERT_CONTEXT
+
+// TODO: SecPkgContext_IssuerListInfoEx
