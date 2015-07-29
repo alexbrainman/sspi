@@ -13,6 +13,8 @@ import (
 	"github.com/alexbrainman/sspi"
 )
 
+// TODO: maybe move all these into a separate package or something
+
 func (c *Client) streamSizes() (*_SecPkgContext_StreamSizes, error) {
 	// TODO: do not retrive _SecPkgContext_StreamSizes every time (cache the data and invalidate it every time is possible can be changed: handshake, redo, ...)
 	// TODO: maybe return (header, trailer, maxmsg int, err error) instead
