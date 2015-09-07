@@ -66,8 +66,8 @@ func sendOutBuffer(w io.Writer, b *sspi.SecBuffer) error {
 	return err
 }
 
-// indexOfSecBuffer searches buffeers bs for buffer type buftype.
-// It returns -1 if not found
+// indexOfSecBuffer searches buffers bs for buffer type buftype.
+// It returns -1 if not found.
 func indexOfSecBuffer(bs []sspi.SecBuffer, buftype uint32) int {
 	for i := range bs {
 		if bs[i].BufferType == buftype {
