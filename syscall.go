@@ -19,6 +19,7 @@ const (
 	SEC_I_COMPLETE_NEEDED       = syscall.Errno(590611)
 	SEC_I_CONTINUE_NEEDED       = syscall.Errno(590610)
 
+	SEC_E_LOGON_DENIED       = syscall.Errno(0x8009030c)
 	SEC_E_CONTEXT_EXPIRED    = syscall.Errno(0x80090317) // not sure if the value is valid
 	SEC_E_INCOMPLETE_MESSAGE = syscall.Errno(0x80090318)
 
@@ -44,7 +45,19 @@ const (
 	SECPKG_CRED_INBOUND  = 1
 	SECPKG_CRED_OUTBOUND = 2
 	SECPKG_CRED_BOTH     = (SECPKG_CRED_OUTBOUND | SECPKG_CRED_INBOUND)
+
+	SEC_WINNT_AUTH_IDENTITY_UNICODE = 0x2
 )
+
+type SEC_WINNT_AUTH_IDENTITY struct {
+	User           *uint16
+	UserLength     uint32
+	Domain         *uint16
+	DomainLength   uint32
+	Password       *uint16
+	PasswordLength uint32
+	Flags          uint32
+}
 
 type LUID struct {
 	LowPart  uint32

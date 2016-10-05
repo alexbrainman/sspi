@@ -23,10 +23,6 @@ var (
 	testURL = flag.String("url", "", "server URL for TestNTLMHTTPClient")
 )
 
-// TODO: implement Negotiate authentication. Probably in a different package.
-// see http://blogs.technet.com/b/tristank/archive/2006/08/02/negotiate-this.aspx
-// for how to disinguish between NTLM and Kerberos during Negotiate
-
 func newRequest() (*http.Request, error) {
 	req, err := http.NewRequest("GET", *testURL, nil)
 	if err != nil {
@@ -167,17 +163,15 @@ func TestNTLMHTTPServer(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	go func() {
-		res, err := http.Get(ts.URL)
-		if err != nil {
-			t.Fatal(err)
-		}
-		got, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(got) != "hello" {
-			t.Errorf("got %q, want hello", string(got))
-		}
-	}()
+	res, err := http.Get(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "hello" {
+		t.Errorf("got %q, want hello", string(got))
+	}
 }
