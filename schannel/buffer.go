@@ -76,11 +76,3 @@ func indexOfSecBuffer(bs []sspi.SecBuffer, buftype uint32) int {
 	}
 	return -1
 }
-
-func newSecBufferDesc(b []sspi.SecBuffer) *sspi.SecBufferDesc {
-	return &sspi.SecBufferDesc{
-		Version:      sspi.SECBUFFER_VERSION,
-		BuffersCount: uint32(len(b)),
-		Buffers:      &b[0],
-	}
-}

@@ -7,6 +7,7 @@
 package negotiate_test
 
 import (
+	"crypto/rand"
 	"flag"
 	"os"
 	"os/user"
@@ -37,10 +38,10 @@ func testContextExpiry(t *testing.T, name string, c interface {
 }) {
 	validFor := c.Expiry().Sub(time.Now())
 	if validFor < time.Hour {
-		t.Errorf("%v exipries in %v, more then 1 hour expected", name, validFor)
+		t.Errorf("%v expires in %v, more than 1 hour expected", name, validFor)
 	}
 	if validFor > 10*24*time.Hour {
-		t.Errorf("%v exipries in %v, less then 10 days expected", name, validFor)
+		t.Errorf("%v expires in %v, less than 10 days expected", name, validFor)
 	}
 }
 
@@ -68,7 +69,7 @@ func testNegotiate(t *testing.T, clientCred *sspi.Credentials, SPN string) {
 	}
 	t.Logf("sent %d bytes to server", len(toServerToken))
 
-	testContextExpiry(t, "clent security context", client)
+	testContextExpiry(t, "client security context", client)
 
 	server, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
 	if err != nil {
@@ -216,4 +217,96 @@ func TestAcquireUserCredentials(t *testing.T) {
 	defer cred.Release()
 
 	testNegotiate(t, cred, "")
+}
+
+func TestSignature(t *testing.T) {
+	clientCred, err := negotiate.AcquireCurrentUserCredentials()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer clientCred.Release()
+
+	serverCred, err := negotiate.AcquireServerCredentials()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer serverCred.Release()
+
+	client, toServerToken, err := negotiate.NewClientContext(clientCred, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Release()
+
+	if len(toServerToken) == 0 {
+		t.Fatal("token for server cannot be empty")
+	}
+
+	server, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Release()
+
+	var clientDone, serverDone bool
+	for {
+		if len(toClientToken) == 0 {
+			break
+		}
+		clientDone, toServerToken, err = client.Update(toClientToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(toServerToken) == 0 {
+			break
+		}
+		serverDone, toClientToken, err = server.Update(toServerToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !clientDone {
+		t.Fatal("client authentication should be completed now")
+	}
+	if !serverDone {
+		t.Fatal("server authentication should be completed now")
+	}
+
+	clientMsg := make([]byte, 10)
+	_, err = rand.Read(clientMsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("clientMsg=%v", clientMsg)
+
+	clientSig, err := client.MakeSignature(clientMsg, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("clientSig=%v", clientSig)
+
+	_, err = server.VerifySignature(clientMsg, clientSig, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("server verified client signature")
+
+	serverMsg := make([]byte, 10)
+	_, err = rand.Read(serverMsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("serverMsg=%v", serverMsg)
+
+	serverSig, err := server.MakeSignature(serverMsg, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("serverSig=%v", serverSig)
+
+	_, err = client.VerifySignature(serverMsg, serverSig, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("client verified server signature")
 }
