@@ -51,6 +51,8 @@ var (
 	procEncryptMessage             = modsecur32.NewProc("EncryptMessage")
 	procDecryptMessage             = modsecur32.NewProc("DecryptMessage")
 	procApplyControlToken          = modsecur32.NewProc("ApplyControlToken")
+	procMakeSignature              = modsecur32.NewProc("MakeSignature")
+	procVerifySignature            = modsecur32.NewProc("VerifySignature")
 )
 
 func QuerySecurityPackageInfo(pkgname *uint16, pkginfo **SecPkgInfo) (ret syscall.Errno) {
@@ -133,6 +135,18 @@ func DecryptMessage(context *CtxtHandle, message *SecBufferDesc, messageseqno ui
 
 func ApplyControlToken(context *CtxtHandle, input *SecBufferDesc) (ret syscall.Errno) {
 	r0, _, _ := syscall.Syscall(procApplyControlToken.Addr(), 2, uintptr(unsafe.Pointer(context)), uintptr(unsafe.Pointer(input)), 0)
+	ret = syscall.Errno(r0)
+	return
+}
+
+func MakeSignature(context *CtxtHandle, qop uint32, message *SecBufferDesc, messageseqno uint32) (ret syscall.Errno) {
+	r0, _, _ := syscall.Syscall6(procMakeSignature.Addr(), 4, uintptr(unsafe.Pointer(context)), uintptr(qop), uintptr(unsafe.Pointer(message)), uintptr(messageseqno), 0, 0)
+	ret = syscall.Errno(r0)
+	return
+}
+
+func VerifySignature(context *CtxtHandle, message *SecBufferDesc, messageseqno uint32, qop *uint32) (ret syscall.Errno) {
+	r0, _, _ := syscall.Syscall6(procVerifySignature.Addr(), 4, uintptr(unsafe.Pointer(context)), uintptr(unsafe.Pointer(message)), uintptr(messageseqno), uintptr(unsafe.Pointer(qop)), 0, 0)
 	ret = syscall.Errno(r0)
 	return
 }
