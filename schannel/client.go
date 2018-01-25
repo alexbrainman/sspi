@@ -44,11 +44,11 @@ func (c *Client) Handshake(serverName string) error {
 		{BufferType: sspi.SECBUFFER_EMPTY},
 	}
 	// TODO: InitializeSecurityContext doco says that inBufs should be nil on the first call
-	inBufs := newSecBufferDesc(inBuf[:])
+	inBufs := sspi.NewSecBufferDesc(inBuf[:])
 	outBuf := []sspi.SecBuffer{
 		{BufferType: sspi.SECBUFFER_TOKEN},
 	}
-	outBufs := newSecBufferDesc(outBuf)
+	outBufs := sspi.NewSecBufferDesc(outBuf)
 
 	for {
 		ret := c.ctx.Update(name, outBufs, inBufs)
@@ -108,7 +108,7 @@ func (c *Client) writeBlock(data []byte) (int, error) {
 	b[1].Set(sspi.SECBUFFER_DATA, data)
 	b[2].Set(sspi.SECBUFFER_STREAM_TRAILER, make([]byte, ss.Trailer))
 	b[3].Set(sspi.SECBUFFER_EMPTY, nil)
-	ret := sspi.EncryptMessage(c.ctx.Handle, 0, newSecBufferDesc(b[:]), 0)
+	ret := sspi.EncryptMessage(c.ctx.Handle, 0, sspi.NewSecBufferDesc(b[:]), 0)
 	switch ret {
 	case sspi.SEC_E_OK:
 	case sspi.SEC_E_CONTEXT_EXPIRED:
@@ -160,7 +160,7 @@ func (c *Client) Read(data []byte) (int, error) {
 		}
 	}
 	var b [4]sspi.SecBuffer
-	desc := newSecBufferDesc(b[:])
+	desc := sspi.NewSecBufferDesc(b[:])
 loop:
 	for {
 		b[0].Set(sspi.SECBUFFER_DATA, c.inbuf.bytes())
@@ -225,11 +225,11 @@ func (c *Client) Shutdown() error {
 		{BufferType: sspi.SECBUFFER_TOKEN},
 		{BufferType: sspi.SECBUFFER_EMPTY},
 	}
-	inBufs := newSecBufferDesc(inBuf[:])
+	inBufs := sspi.NewSecBufferDesc(inBuf[:])
 	outBuf := []sspi.SecBuffer{
 		{BufferType: sspi.SECBUFFER_TOKEN},
 	}
-	outBufs := newSecBufferDesc(outBuf)
+	outBufs := sspi.NewSecBufferDesc(outBuf)
 	for {
 		// TODO: I am not sure if I can pass nil as targname
 		ret := c.ctx.Update(nil, outBufs, inBufs)

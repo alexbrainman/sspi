@@ -72,3 +72,11 @@ func (c *Client) KeyInfo() (sessionKeySize uint32, sigAlg uint32, sigAlgName str
 	eaname := syscall.UTF16ToString((*[2 << 20]uint16)(unsafe.Pointer(ki.EncryptAlgorithmName))[:])
 	return ki.KeySize, ki.SignatureAlgorithm, saname, ki.EncryptAlgorithm, eaname, nil
 }
+
+// Sizes queries the context for the sizes used in per-message functions.
+// It returns the maximum token size used in authentication exchanges, the
+// maximum signature size, the preferred integral size of messages, the
+// size of any security trailer, and any error.
+func (c *Client) Sizes() (uint32, uint32, uint32, uint32, error) {
+	return c.ctx.Sizes()
+}

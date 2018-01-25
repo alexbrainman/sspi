@@ -25,6 +25,22 @@ const (
 	MICROSOFT_KERBEROS_NAME = "Kerberos"
 	NEGOSSP_NAME            = "Negotiate"
 	UNISP_NAME              = "Microsoft Unified Security Protocol Provider"
+
+	_SECPKG_ATTR_SIZES            = 0
+	_SECPKG_ATTR_NAMES            = 1
+	_SECPKG_ATTR_LIFESPAN         = 2
+	_SECPKG_ATTR_DCE_INFO         = 3
+	_SECPKG_ATTR_STREAM_SIZES     = 4
+	_SECPKG_ATTR_KEY_INFO         = 5
+	_SECPKG_ATTR_AUTHORITY        = 6
+	_SECPKG_ATTR_PROTO_INFO       = 7
+	_SECPKG_ATTR_PASSWORD_EXPIRY  = 8
+	_SECPKG_ATTR_SESSION_KEY      = 9
+	_SECPKG_ATTR_PACKAGE_INFO     = 10
+	_SECPKG_ATTR_USER_FLAGS       = 11
+	_SECPKG_ATTR_NEGOTIATION_INFO = 12
+	_SECPKG_ATTR_NATIVE_NAMES     = 13
+	_SECPKG_ATTR_FLAGS            = 14
 )
 
 type SecPkgInfo struct {
@@ -34,6 +50,13 @@ type SecPkgInfo struct {
 	MaxToken     uint32
 	Name         *uint16
 	Comment      *uint16
+}
+
+type _SecPkgContext_Sizes struct {
+	MaxToken        uint32
+	MaxSignature    uint32
+	BlockSize       uint32
+	SecurityTrailer uint32
 }
 
 //sys	QuerySecurityPackageInfo(pkgname *uint16, pkginfo **SecPkgInfo) (ret syscall.Errno) = secur32.QuerySecurityPackageInfoW

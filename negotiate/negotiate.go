@@ -125,6 +125,43 @@ func updateContext(c *sspi.Context, dst, src []byte, targetName *uint16) (authCo
 	return false, int(outBuf[0].BufferSize), nil
 }
 
+func makeSignature(c *sspi.Context, msg []byte, qop, seqno uint32) ([]byte, error) {
+	_, maxSignature, _, _, err := c.Sizes()
+	if err != nil {
+		return nil, err
+	}
+
+	if maxSignature == 0 {
+		return nil, errors.New("integrity services are not requested or unavailable")
+	}
+
+	var b [2]sspi.SecBuffer
+	b[0].Set(sspi.SECBUFFER_DATA, msg)
+	b[1].Set(sspi.SECBUFFER_TOKEN, make([]byte, maxSignature))
+
+	ret := sspi.MakeSignature(c.Handle, qop, sspi.NewSecBufferDesc(b[:]), seqno)
+	if ret != sspi.SEC_E_OK {
+		return nil, ret
+	}
+
+	return b[1].Bytes(), nil
+}
+
+func verifySignature(c *sspi.Context, msg, token []byte, seqno uint32) (uint32, error) {
+	var b [2]sspi.SecBuffer
+	b[0].Set(sspi.SECBUFFER_DATA, msg)
+	b[1].Set(sspi.SECBUFFER_TOKEN, token)
+
+	var qop uint32
+
+	ret := sspi.VerifySignature(c.Handle, sspi.NewSecBufferDesc(b[:]), seqno, &qop)
+	if ret != sspi.SEC_E_OK {
+		return 0, ret
+	}
+
+	return qop, nil
+}
+
 // ClientContext is used by the client to manage all steps of Negotiate negotiation.
 type ClientContext struct {
 	sctxt      *sspi.Context
@@ -191,6 +228,29 @@ func (c *ClientContext) Update(token []byte) (authCompleted bool, outputToken []
 	}
 	otoken = otoken[:n]
 	return authDone, otoken, nil
+}
+
+// Sizes queries the client context for the sizes used in per-message
+// functions. It returns the maximum token size used in authentication
+// exchanges, the maximum signature size, the preferred integral size of
+// messages, the size of any security trailer, and any error.
+func (c *ClientContext) Sizes() (uint32, uint32, uint32, uint32, error) {
+	return c.sctxt.Sizes()
+}
+
+// MakeSignature uses the established client context to create a signature
+// for the given message using the provided quality of protection flags and
+// sequence number. It returns the signature token in addition to any error.
+func (c *ClientContext) MakeSignature(msg []byte, qop, seqno uint32) ([]byte, error) {
+	return makeSignature(c.sctxt, msg, qop, seqno)
+}
+
+// VerifySignature uses the established client context and signature token
+// to check that the provided message hasn't been tampered or received out
+// of sequence. It returns any quality of protection flags and any error
+// that occurred.
+func (c *ClientContext) VerifySignature(msg, token []byte, seqno uint32) (uint32, error) {
+	return verifySignature(c.sctxt, msg, token, seqno)
 }
 
 // ServerContext is used by the server to manage all steps of Negotiate
@@ -262,4 +322,27 @@ func (c *ServerContext) ImpersonateUser() error {
 // user to what it was before ImpersonateUser was executed.
 func (c *ServerContext) RevertToSelf() error {
 	return c.sctxt.RevertToSelf()
+}
+
+// Sizes queries the server context for the sizes used in per-message
+// functions. It returns the maximum token size used in authentication
+// exchanges, the maximum signature size, the preferred integral size of
+// messages, the size of any security trailer, and any error.
+func (c *ServerContext) Sizes() (uint32, uint32, uint32, uint32, error) {
+	return c.sctxt.Sizes()
+}
+
+// MakeSignature uses the established server context to create a signature
+// for the given message using the provided quality of protection flags and
+// sequence number. It returns the signature token in addition to any error.
+func (c *ServerContext) MakeSignature(msg []byte, qop, seqno uint32) ([]byte, error) {
+	return makeSignature(c.sctxt, msg, qop, seqno)
+}
+
+// VerifySignature uses the established server context and signature token
+// to check that the provided message hasn't been tampered or received out
+// of sequence. It returns any quality of protection flags and any error
+// that occurred.
+func (c *ServerContext) VerifySignature(msg, token []byte, seqno uint32) (uint32, error) {
+	return verifySignature(c.sctxt, msg, token, seqno)
 }

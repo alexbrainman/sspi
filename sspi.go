@@ -152,3 +152,26 @@ func (c *Context) RevertToSelf() error {
 	}
 	return nil
 }
+
+// Sizes queries the context for the sizes used in per-message functions.
+// It returns the maximum token size used in authentication exchanges, the
+// maximum signature size, the preferred integral size of messages, the
+// size of any security trailer, and any error.
+func (c *Context) Sizes() (uint32, uint32, uint32, uint32, error) {
+	var s _SecPkgContext_Sizes
+	ret := QueryContextAttributes(c.Handle, _SECPKG_ATTR_SIZES, (*byte)(unsafe.Pointer(&s)))
+	if ret != SEC_E_OK {
+		return 0, 0, 0, 0, ret
+	}
+	return s.MaxToken, s.MaxSignature, s.BlockSize, s.SecurityTrailer, nil
+}
+
+// NewSecBufferDesc returns an initialized SecBufferDesc describing the
+// provided SecBuffer.
+func NewSecBufferDesc(b []SecBuffer) *SecBufferDesc {
+	return &SecBufferDesc{
+		Version:      SECBUFFER_VERSION,
+		BuffersCount: uint32(len(b)),
+		Buffers:      &b[0],
+	}
+}

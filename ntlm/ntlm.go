@@ -179,6 +179,14 @@ func (c *ClientContext) Update(challenge []byte) ([]byte, error) {
 	return authenticate, nil
 }
 
+// Sizes queries the client context for the sizes used in per-message
+// functions. It returns the maximum token size used in authentication
+// exchanges, the maximum signature size, the preferred integral size of
+// messages, the size of any security trailer, and any error.
+func (c *ClientContext) Sizes() (uint32, uint32, uint32, uint32, error) {
+	return c.sctxt.Sizes()
+}
+
 // ServerContext is used by the server to manage all steps of NTLM
 // negotiation. Once authentication is completed the context can be
 // used to impersonate client.
@@ -246,4 +254,12 @@ func (c *ServerContext) ImpersonateUser() error {
 // user to what it was before ImpersonateUser was executed.
 func (c *ServerContext) RevertToSelf() error {
 	return c.sctxt.RevertToSelf()
+}
+
+// Sizes queries the server context for the sizes used in per-message
+// functions. It returns the maximum token size used in authentication
+// exchanges, the maximum signature size, the preferred integral size of
+// messages, the size of any security trailer, and any error.
+func (c *ServerContext) Sizes() (uint32, uint32, uint32, uint32, error) {
+	return c.sctxt.Sizes()
 }
