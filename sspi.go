@@ -50,13 +50,21 @@ type Credentials struct {
 	expiry syscall.Filetime
 }
 
-func AcquireCredentials(pkgname string, creduse uint32, authdata *byte) (*Credentials, error) {
+func AcquireCredentials(principal string, pkgname string, creduse uint32, authdata *byte) (*Credentials, error) {
+	var principalName *uint16
+	if principal != "" {
+		var err error
+		principalName, err = syscall.UTF16PtrFromString(principal)
+		if err != nil {
+			return nil, err
+		}
+	}
 	name, err := syscall.UTF16PtrFromString(pkgname)
 	if err != nil {
 		return nil, err
 	}
 	var c Credentials
-	ret := AcquireCredentialsHandle(nil, name, creduse, nil, authdata, 0, 0, &c.Handle, &c.expiry)
+	ret := AcquireCredentialsHandle(principalName, name, creduse, nil, authdata, 0, 0, &c.Handle, &c.expiry)
 	if ret != SEC_E_OK {
 		return nil, ret
 	}

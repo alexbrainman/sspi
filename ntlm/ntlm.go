@@ -29,7 +29,7 @@ func init() {
 }
 
 func acquireCredentials(creduse uint32, ai *sspi.SEC_WINNT_AUTH_IDENTITY) (*sspi.Credentials, error) {
-	c, err := sspi.AcquireCredentials(sspi.NTLMSP_NAME, creduse, (*byte)(unsafe.Pointer(ai)))
+	c, err := sspi.AcquireCredentials("", sspi.NTLMSP_NAME, creduse, (*byte)(unsafe.Pointer(ai)))
 	if err != nil {
 		return nil, err
 	}

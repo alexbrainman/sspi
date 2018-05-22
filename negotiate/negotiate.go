@@ -30,8 +30,8 @@ func init() {
 	}
 }
 
-func acquireCredentials(creduse uint32, ai *sspi.SEC_WINNT_AUTH_IDENTITY) (*sspi.Credentials, error) {
-	c, err := sspi.AcquireCredentials(sspi.NEGOSSP_NAME, creduse, (*byte)(unsafe.Pointer(ai)))
+func acquireCredentials(principalName string, creduse uint32, ai *sspi.SEC_WINNT_AUTH_IDENTITY) (*sspi.Credentials, error) {
+	c, err := sspi.AcquireCredentials(principalName, sspi.NEGOSSP_NAME, creduse, (*byte)(unsafe.Pointer(ai)))
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func acquireCredentials(creduse uint32, ai *sspi.SEC_WINNT_AUTH_IDENTITY) (*sspi
 // itself to the server. It will also be used by the server
 // to impersonate the user.
 func AcquireCurrentUserCredentials() (*sspi.Credentials, error) {
-	return acquireCredentials(sspi.SECPKG_CRED_OUTBOUND, nil)
+	return acquireCredentials("", sspi.SECPKG_CRED_OUTBOUND, nil)
 }
 
 // TODO: see if I can share this common ntlm and negotiate code
@@ -80,13 +80,20 @@ func AcquireUserCredentials(domain, username, password string) (*sspi.Credential
 		PasswordLength: uint32(len(p) - 1), // do not count terminating 0
 		Flags:          sspi.SEC_WINNT_AUTH_IDENTITY_UNICODE,
 	}
-	return acquireCredentials(sspi.SECPKG_CRED_OUTBOUND, &ai)
+	return acquireCredentials("", sspi.SECPKG_CRED_OUTBOUND, &ai)
 }
 
 // AcquireServerCredentials acquires server credentials that will
-// be used to authenticate client.
-func AcquireServerCredentials() (*sspi.Credentials, error) {
-	return acquireCredentials(sspi.SECPKG_CRED_INBOUND, nil)
+// be used to authenticate clients.
+// The principalName parameter is passed to the underlying call to
+// the winapi AcquireCredentialsHandle function (and specifies the
+// name of the principal whose credentials the underlying handle
+// will reference).
+// As a special case, using an empty string for the principal name
+// will require the credential of the user under whose security context
+// the current process is running.
+func AcquireServerCredentials(principalName string) (*sspi.Credentials, error) {
+	return acquireCredentials(principalName, sspi.SECPKG_CRED_INBOUND, nil)
 }
 
 func updateContext(c *sspi.Context, dst, src []byte, targetName *uint16) (authCompleted bool, n int, err error) {

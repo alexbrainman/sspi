@@ -35,7 +35,7 @@ func acquireCredentials(creduse uint32) (*sspi.Credentials, error) {
 		// TODO: allow for EnabledProtocols
 		// TODO: allow for MinimumCipherStrength / MaximumCipherStrength
 	}
-	c, err := sspi.AcquireCredentials(sspi.UNISP_NAME, creduse, (*byte)(unsafe.Pointer(sc)))
+	c, err := sspi.AcquireCredentials("", sspi.UNISP_NAME, creduse, (*byte)(unsafe.Pointer(sc)))
 	if err != nil {
 		return nil, err
 	}

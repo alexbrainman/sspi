@@ -53,7 +53,7 @@ func testNegotiate(t *testing.T, clientCred *sspi.Credentials, SPN string) {
 		t.Logf("testing with SPN=%s", SPN)
 	}
 
-	serverCred, err := negotiate.AcquireServerCredentials()
+	serverCred, err := negotiate.AcquireServerCredentials("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestNegotiateFailure(t *testing.T) {
 	}
 	defer clientCred.Release()
 
-	serverCred, err := negotiate.AcquireServerCredentials()
+	serverCred, err := negotiate.AcquireServerCredentials("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +227,7 @@ func TestSignatureEncryption(t *testing.T) {
 	}
 	defer clientCred.Release()
 
-	serverCred, err := negotiate.AcquireServerCredentials()
+	serverCred, err := negotiate.AcquireServerCredentials("")
 	if err != nil {
 		t.Fatal(err)
 	}
