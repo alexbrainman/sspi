@@ -142,6 +142,49 @@ func makeSignature(c *sspi.Context, msg []byte, qop, seqno uint32) ([]byte, erro
 	return b[1].Bytes(), nil
 }
 
+func encryptMessage(c *sspi.Context, msg []byte, qop, seqno uint32) ([]byte, error) {
+	_ /*maxToken*/, maxSignature, cBlockSize, cSecurityTrailer, err := c.Sizes()
+	if err != nil {
+		return nil, err
+	}
+
+	if maxSignature == 0 {
+		return nil, errors.New("integrity services are not requested or unavailable")
+	}
+
+	var b [3]sspi.SecBuffer
+	b[0].Set(sspi.SECBUFFER_TOKEN, make([]byte, cSecurityTrailer))
+	b[1].Set(sspi.SECBUFFER_DATA, msg)
+	b[2].Set(sspi.SECBUFFER_PADDING, make([]byte, cBlockSize))
+
+	ret := sspi.EncryptMessage(c.Handle, qop, sspi.NewSecBufferDesc(b[:]), seqno)
+	if ret != sspi.SEC_E_OK {
+		return nil, ret
+	}
+
+	r0, r1, r2 := b[0].Bytes(), b[1].Bytes(), b[2].Bytes()
+	res := make([]byte, 0, len(r0)+len(r1)+len(r2))
+	res = append(res, r0...)
+	res = append(res, r1...)
+	res = append(res, r2...)
+
+	return res, nil
+}
+
+func decryptMessage(c *sspi.Context, msg []byte, seqno uint32) (uint32, []byte, error) {
+	var b [2]sspi.SecBuffer
+	b[0].Set(sspi.SECBUFFER_STREAM, msg)
+	b[1].Set(sspi.SECBUFFER_DATA, []byte{})
+
+	var qop uint32
+	ret := sspi.DecryptMessage(c.Handle, sspi.NewSecBufferDesc(b[:]), seqno, &qop)
+	if ret != sspi.SEC_E_OK {
+		return qop, nil, ret
+	}
+
+	return qop, b[1].Bytes(), nil
+}
+
 func verifySignature(c *sspi.Context, msg, token []byte, seqno uint32) (uint32, error) {
 	var b [2]sspi.SecBuffer
 	b[0].Set(sspi.SECBUFFER_DATA, msg)
@@ -248,6 +291,22 @@ func (c *ClientContext) VerifySignature(msg, token []byte, seqno uint32) (uint32
 	return verifySignature(c.sctxt, msg, token, seqno)
 }
 
+// EncryptMessage uses the established client context to encrypt a message
+// using the provided quality of protection flags and sequence number.
+// It returns the signature token in addition to any error.
+// IMPORTANT: the input msg parameter is updated in place by the low-level windows api
+// so must be copied if the initial content should not be modified.
+func (c *ClientContext) EncryptMessage(msg []byte, qop, seqno uint32) ([]byte, error) {
+	return encryptMessage(c.sctxt, msg, qop, seqno)
+}
+
+// DecryptMessage uses the established client context to decrypt a message
+// using the provided sequence number.
+// It returns the quality of protection flag and the decrypted message in addition to any error.
+func (c *ClientContext) DecryptMessage(msg []byte, seqno uint32) (uint32, []byte, error) {
+	return decryptMessage(c.sctxt, msg, seqno)
+}
+
 // ServerContext is used by the server to manage all steps of Negotiate
 // negotiation. Once authentication is completed the context can be
 // used to impersonate client.
@@ -340,4 +399,20 @@ func (c *ServerContext) MakeSignature(msg []byte, qop, seqno uint32) ([]byte, er
 // that occurred.
 func (c *ServerContext) VerifySignature(msg, token []byte, seqno uint32) (uint32, error) {
 	return verifySignature(c.sctxt, msg, token, seqno)
+}
+
+// EncryptMessage uses the established server context to encrypt a message
+// using the provided quality of protection flags and sequence number.
+// It returns the signature token in addition to any error.
+// IMPORTANT: the input msg parameter is updated in place by the low-level windows api
+// so must be copied if the initial content should not be modified.
+func (c *ServerContext) EncryptMessage(msg []byte, qop, seqno uint32) ([]byte, error) {
+	return encryptMessage(c.sctxt, msg, qop, seqno)
+}
+
+// DecryptMessage uses the established server context to decrypt a message
+// using the provided sequence number.
+// It returns the quality of protection flag and the decrypted message in addition to any error.
+func (c *ServerContext) DecryptMessage(msg []byte, seqno uint32) (uint32, []byte, error) {
+	return decryptMessage(c.sctxt, msg, seqno)
 }

@@ -7,6 +7,7 @@
 package negotiate_test
 
 import (
+	"bytes"
 	"crypto/rand"
 	"flag"
 	"os"
@@ -219,7 +220,7 @@ func TestAcquireUserCredentials(t *testing.T) {
 	testNegotiate(t, cred, "")
 }
 
-func TestSignature(t *testing.T) {
+func TestSignatureEncryption(t *testing.T) {
 	clientCred, err := negotiate.AcquireCurrentUserCredentials()
 	if err != nil {
 		t.Fatal(err)
@@ -291,6 +292,25 @@ func TestSignature(t *testing.T) {
 	}
 	t.Logf("server verified client signature")
 
+	var clientQop uint32
+	clientCrypt, err := client.EncryptMessage(copyArray(clientMsg), clientQop, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("clientMsg=%v,clientCrypt=%v", clientMsg, clientCrypt)
+
+	qop, m2, err := server.DecryptMessage(clientCrypt, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if qop != clientQop {
+		t.Fatalf("Wrong value %d for qop", qop)
+	}
+	if !bytes.Equal(clientMsg, m2) {
+		t.Fatalf("Wrong value %v for message decrypted by server (expected %v)", m2, clientMsg)
+	}
+	t.Logf("server decrypted client message")
+
 	serverMsg := make([]byte, 10)
 	_, err = rand.Read(serverMsg)
 	if err != nil {
@@ -309,4 +329,10 @@ func TestSignature(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("client verified server signature")
+}
+
+func copyArray(a []byte) []byte {
+	b := make([]byte, len(a))
+	copy(b, a)
+	return b
 }
