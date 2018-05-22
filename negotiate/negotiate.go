@@ -386,6 +386,25 @@ func (c *ServerContext) Update(token []byte) (authCompleted bool, outputToken []
 	return authDone, otoken, nil
 }
 
+const _SECPKG_ATTR_NATIVE_NAMES = 13
+
+type _SecPkgContext_NativeNames struct {
+	ClientName *uint16
+	ServerName *uint16
+}
+
+// GetUsername returns the username corresponding to the authenticated client
+func (c *ServerContext) GetUsername() (string, error) {
+	var ns _SecPkgContext_NativeNames
+	ret := sspi.QueryContextAttributes(c.sctxt.Handle, _SECPKG_ATTR_NATIVE_NAMES, (*byte)(unsafe.Pointer(&ns)))
+	if ret != sspi.SEC_E_OK {
+		return "", ret
+	}
+	sspi.FreeContextBuffer((*byte)(unsafe.Pointer(ns.ServerName)))
+	defer sspi.FreeContextBuffer((*byte)(unsafe.Pointer(ns.ClientName)))
+	return syscall.UTF16ToString((*[2 << 20]uint16)(unsafe.Pointer(ns.ClientName))[:]), nil
+}
+
 // ImpersonateUser changes current OS thread user. New user is
 // the user as specified by client credentials.
 func (c *ServerContext) ImpersonateUser() error {
