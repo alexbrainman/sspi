@@ -334,29 +334,19 @@ type ServerContext struct {
 	sctxt *sspi.Context
 }
 
-// TODO: I suspect NewServerContext might be the call to complete auth sometimes (see http://blogs.technet.com/b/tristank/archive/2006/08/02/negotiate-this.aspx) - we might need to redesign this call to return authCompleted or similar
-
 // NewServerContext creates new server context. It uses server
 // credentials created by AcquireServerCredentials and token from
 // the client to start server Negotiate negotiation sequence.
 // It also returns new token to be sent to the client.
-func NewServerContext(cred *sspi.Credentials, token []byte) (sc *ServerContext, outputToken []byte, err error) {
+func NewServerContext(cred *sspi.Credentials, token []byte) (sc *ServerContext, authDone bool, outputToken []byte, err error) {
 	otoken := make([]byte, PackageInfo.MaxToken)
 	c := sspi.NewServerContext(cred, sspi.ASC_REQ_CONNECTION)
 	authDone, n, err2 := updateContext(c, otoken, token, nil)
 	if err2 != nil {
-		return nil, nil, err2
-	}
-	if authDone {
-		c.Release()
-		return nil, nil, errors.New("negotiate authentication should not be completed yet")
-	}
-	if n == 0 {
-		c.Release()
-		return nil, nil, errors.New("negotiate token should not be empty")
+		return nil, false, nil, err2
 	}
 	otoken = otoken[:n]
-	return &ServerContext{sctxt: c}, otoken, nil
+	return &ServerContext{sctxt: c}, authDone, otoken, nil
 }
 
 // Release free up resources associated with server context c.

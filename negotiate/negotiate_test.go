@@ -72,7 +72,7 @@ func testNegotiate(t *testing.T, clientCred *sspi.Credentials, SPN string) {
 
 	testContextExpiry(t, "client security context", client)
 
-	server, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
+	server, serverDone, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func testNegotiate(t *testing.T, clientCred *sspi.Credentials, SPN string) {
 
 	testContextExpiry(t, "server security context", server)
 
-	var clientDone, serverDone bool
+	var clientDone bool
 	for {
 		if len(toClientToken) == 0 {
 			break
@@ -163,14 +163,14 @@ func TestNegotiateFailure(t *testing.T) {
 	}
 	t.Logf("sent %d bytes to server", len(toServerToken))
 
-	server, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
+	server, serverDone, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer server.Release()
 
 	for {
-		var clientDone, serverDone bool
+		var clientDone bool
 		if len(toClientToken) == 0 {
 			t.Fatal("token for client cannot be empty")
 		}
@@ -243,13 +243,13 @@ func TestSignatureEncryption(t *testing.T) {
 		t.Fatal("token for server cannot be empty")
 	}
 
-	server, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
+	server, serverDone, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer server.Release()
 
-	var clientDone, serverDone bool
+	var clientDone bool
 	for {
 		if len(toClientToken) == 0 {
 			break
