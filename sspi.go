@@ -50,6 +50,11 @@ type Credentials struct {
 	expiry syscall.Filetime
 }
 
+// AcquireCredentials calls the windows AcquireCredentialsHandle function and
+// returns Credentials containing a security handle that can be used for
+// InitializeSecurityContext or AcceptSecurityContext operations.
+// As a special case, passing an empty string as the principal parameter will
+// pass a null string to the underlying function.
 func AcquireCredentials(principal string, pkgname string, creduse uint32, authdata *byte) (*Credentials, error) {
 	var principalName *uint16
 	if principal != "" {
