@@ -63,14 +63,9 @@ func AcquireUserCredentials(domain, username, password string) (*sspi.Credential
 	if err != nil {
 		return nil, err
 	}
-	var p []uint16
-	var plen uint32
-	if len(password) > 0 {
-		p, err = syscall.UTF16FromString(password)
-		if err != nil {
-			return nil, err
-		}
-		plen = uint32(len(p) - 1) // do not count terminating 0
+	p, err := syscall.UTF16FromString(password)
+	if err != nil {
+		return nil, err
 	}
 	ai := sspi.SEC_WINNT_AUTH_IDENTITY{
 		User:           &u[0],
@@ -78,7 +73,7 @@ func AcquireUserCredentials(domain, username, password string) (*sspi.Credential
 		Domain:         &d[0],
 		DomainLength:   uint32(len(d) - 1), // do not count terminating 0
 		Password:       &p[0],
-		PasswordLength: plen,
+		PasswordLength: uint32(len(p) - 1), // do not count terminating 0
 		Flags:          sspi.SEC_WINNT_AUTH_IDENTITY_UNICODE,
 	}
 	return acquireCredentials(sspi.SECPKG_CRED_OUTBOUND, &ai)
