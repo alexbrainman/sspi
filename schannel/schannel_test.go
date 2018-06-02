@@ -61,7 +61,7 @@ func TestSchannel(t *testing.T) {
 	}
 	t.Logf("key info: session_key_size=%d signature_alg=%q(%d) encryption_alg=%q(%d)", sessionKeySize, sigAlgName, sigAlg, encAlgName, encAlg)
 	// TODO: add some code to verify if negotiated connection is suitable (ciper and so on)
-	_, err = fmt.Fprintf(client, "GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+	_, err = fmt.Fprintf(client, "GET / HTTP/1.1\r\nHost: foo\r\nConnection: close\r\n\r\n")
 	if err != nil {
 		t.Fatal(err)
 	}
