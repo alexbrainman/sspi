@@ -331,6 +331,86 @@ func TestSignatureEncryption(t *testing.T) {
 	t.Logf("client verified server signature")
 }
 
+func TestFlagVerification(t *testing.T) {
+	clientCred, err := negotiate.AcquireCurrentUserCredentials()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer clientCred.Release()
+
+	serverCred, err := negotiate.AcquireServerCredentials("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer serverCred.Release()
+
+	const desiredFlags = sspi.ISC_REQ_CONFIDENTIALITY |
+		sspi.ISC_REQ_INTEGRITY |
+		sspi.ISC_REQ_MUTUAL_AUTH |
+		sspi.ISC_REQ_REPLAY_DETECT |
+		sspi.ISC_REQ_SEQUENCE_DETECT
+
+	client, toServerToken, err := negotiate.NewClientContextWithFlags(clientCred, "", desiredFlags)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Release()
+
+	if len(toServerToken) == 0 {
+		t.Fatal("token for server cannot be empty")
+	}
+
+	server, serverDone, toClientToken, err := negotiate.NewServerContext(serverCred, toServerToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Release()
+
+	if len(toClientToken) == 0 {
+		t.Fatal("token for client cannot be empty")
+	}
+
+	errMsg := "sspi: invalid flags check: desired=100000000 requested=10000000000011110 missing=100000000 extra=10000000000011110"
+
+	var clientDone bool
+	for {
+		if len(toClientToken) == 0 {
+			break
+		}
+		clientDone, toServerToken, err = client.Update(toClientToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// verify all flags
+		if err := client.VerifyFlags(); err != nil {
+			t.Fatal(err)
+		}
+		// verify a subset of flags
+		if err := client.VerifySelectiveFlags(sspi.ISC_REQ_MUTUAL_AUTH); err != nil {
+			t.Fatal(err)
+		}
+		// try to verify a flag that was not initially requested
+		if err := client.VerifySelectiveFlags(sspi.ISC_REQ_ALLOCATE_MEMORY); err == nil || err.Error() != errMsg {
+			t.Fatalf("wrong error found: %v", err)
+		}
+
+		if len(toServerToken) == 0 {
+			break
+		}
+		serverDone, toClientToken, err = server.Update(toServerToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !clientDone {
+		t.Fatal("client authentication should be completed now")
+	}
+	if !serverDone {
+		t.Fatal("server authentication should be completed now")
+	}
+}
+
 func copyArray(a []byte) []byte {
 	b := make([]byte, len(a))
 	copy(b, a)

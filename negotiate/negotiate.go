@@ -327,6 +327,18 @@ func (c *ClientContext) DecryptMessage(msg []byte, seqno uint32) (uint32, []byte
 	return decryptMessage(c.sctxt, msg, seqno)
 }
 
+// VerifyFlags determines if all flags used to construct the client context
+// were honored (see NewClientContextWithFlags).  It should be called after c.Update.
+func (c *ClientContext) VerifyFlags() error {
+	return c.sctxt.VerifyFlags()
+}
+
+// VerifySelectiveFlags determines if the given flags were honored (see NewClientContextWithFlags).
+// It should be called after c.Update.
+func (c *ClientContext) VerifySelectiveFlags(flags uint32) error {
+	return c.sctxt.VerifySelectiveFlags(flags)
+}
+
 // ServerContext is used by the server to manage all steps of Negotiate
 // negotiation. Once authentication is completed the context can be
 // used to impersonate client.

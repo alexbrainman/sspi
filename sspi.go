@@ -7,6 +7,7 @@
 package sspi
 
 import (
+	"fmt"
 	"syscall"
 	"time"
 	"unsafe"
@@ -183,6 +184,35 @@ func (c *Context) Sizes() (uint32, uint32, uint32, uint32, error) {
 		return 0, 0, 0, 0, ret
 	}
 	return s.MaxToken, s.MaxSignature, s.BlockSize, s.SecurityTrailer, nil
+}
+
+// VerifyFlags determines if all flags used to construct the context
+// were honored (see NewClientContext).  It should be called after c.Update.
+func (c *Context) VerifyFlags() error {
+	return c.VerifySelectiveFlags(c.RequestedFlags)
+}
+
+// VerifySelectiveFlags determines if the given flags were honored (see NewClientContext).
+// It should be called after c.Update.
+func (c *Context) VerifySelectiveFlags(flags uint32) error {
+	if valid, missing, extra := verifySelectiveFlags(flags, c.RequestedFlags); !valid {
+		return fmt.Errorf("sspi: invalid flags check: desired=%b requested=%b missing=%b extra=%b", flags, c.RequestedFlags, missing, extra)
+	}
+	if valid, missing, extra := verifySelectiveFlags(flags, c.EstablishedFlags); !valid {
+		return fmt.Errorf("sspi: invalid flags: desired=%b established=%b missing=%b extra=%b", flags, c.EstablishedFlags, missing, extra)
+	}
+	return nil
+}
+
+// verifySelectiveFlags determines if all bits requested in flags are set in establishedFlags.
+// missing represents the bits set in flags that are not set in establishedFlags.
+// extra represents the bits set in establishedFlags that are not set in flags.
+// valid is true and missing is zero when establishedFlags has all of the requested flags.
+func verifySelectiveFlags(flags, establishedFlags uint32) (valid bool, missing, extra uint32) {
+	missing = flags&establishedFlags ^ flags
+	extra = flags | establishedFlags ^ flags
+	valid = missing == 0
+	return valid, missing, extra
 }
 
 // NewSecBufferDesc returns an initialized SecBufferDesc describing the
