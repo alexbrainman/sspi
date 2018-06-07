@@ -77,6 +77,9 @@ func AcquireCredentials(principal string, pkgname string, creduse uint32, authda
 }
 
 func (c *Credentials) Release() error {
+	if c == nil {
+		return nil
+	}
 	ret := FreeCredentialsHandle(&c.Handle)
 	if ret != SEC_E_OK {
 		return ret
@@ -138,6 +141,9 @@ func (c *Context) Update(targname *uint16, out, in *SecBufferDesc) syscall.Errno
 }
 
 func (c *Context) Release() error {
+	if c == nil {
+		return nil
+	}
 	ret := DeleteSecurityContext(c.Handle)
 	if ret != SEC_E_OK {
 		return ret

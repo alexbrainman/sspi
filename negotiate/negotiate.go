@@ -263,6 +263,9 @@ func NewClientContextWithFlags(cred *sspi.Credentials, targetName string, flags 
 
 // Release free up resources associated with client context c.
 func (c *ClientContext) Release() error {
+	if c == nil {
+		return nil
+	}
 	return c.sctxt.Release()
 }
 
@@ -351,6 +354,9 @@ func NewServerContext(cred *sspi.Credentials, token []byte) (sc *ServerContext, 
 
 // Release free up resources associated with server context c.
 func (c *ServerContext) Release() error {
+	if c == nil {
+		return nil
+	}
 	return c.sctxt.Release()
 }
 

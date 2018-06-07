@@ -147,6 +147,9 @@ func NewClientContext(cred *sspi.Credentials) (*ClientContext, []byte, error) {
 
 // Release free up resources associated with client context c.
 func (c *ClientContext) Release() error {
+	if c == nil {
+		return nil
+	}
 	return c.sctxt.Release()
 }
 
@@ -215,6 +218,9 @@ func NewServerContext(cred *sspi.Credentials, negotiate []byte) (*ServerContext,
 
 // Release free up resources associated with server context c.
 func (c *ServerContext) Release() error {
+	if c == nil {
+		return nil
+	}
 	return c.sctxt.Release()
 }
 
