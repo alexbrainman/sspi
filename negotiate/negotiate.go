@@ -53,9 +53,6 @@ func AcquireCurrentUserCredentials() (*sspi.Credentials, error) {
 // authenticate itself to the server. It will also be used by the
 // server to impersonate the user.
 func AcquireUserCredentials(domain, username, password string) (*sspi.Credentials, error) {
-	if len(domain) == 0 {
-		return nil, errors.New("domain parameter cannot be empty")
-	}
 	if len(username) == 0 {
 		return nil, errors.New("username parameter cannot be empty")
 	}
