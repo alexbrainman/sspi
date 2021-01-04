@@ -10,11 +10,11 @@ package ntlm
 
 import (
 	"errors"
-	"syscall"
 	"time"
 	"unsafe"
 
 	"github.com/alexbrainman/sspi"
+	"github.com/alexbrainman/sspi/internal/common"
 )
 
 // PackageInfo contains NTLM SSP package description.
@@ -49,68 +49,17 @@ func AcquireCurrentUserCredentials() (*sspi.Credentials, error) {
 // authenticate itself to the server. It will also be used by the
 // server to impersonate the user.
 func AcquireUserCredentials(domain, username, password string) (*sspi.Credentials, error) {
-	if len(username) == 0 {
-		return nil, errors.New("username parameter cannot be empty")
-	}
-	d, err := syscall.UTF16FromString(domain)
+	ai, err := common.BuildAuthIdentity(domain, username, password)
 	if err != nil {
 		return nil, err
 	}
-	u, err := syscall.UTF16FromString(username)
-	if err != nil {
-		return nil, err
-	}
-	p, err := syscall.UTF16FromString(password)
-	if err != nil {
-		return nil, err
-	}
-	ai := sspi.SEC_WINNT_AUTH_IDENTITY{
-		User:           &u[0],
-		UserLength:     uint32(len(u) - 1), // do not count terminating 0
-		Domain:         &d[0],
-		DomainLength:   uint32(len(d) - 1), // do not count terminating 0
-		Password:       &p[0],
-		PasswordLength: uint32(len(p) - 1), // do not count terminating 0
-		Flags:          sspi.SEC_WINNT_AUTH_IDENTITY_UNICODE,
-	}
-	return acquireCredentials(sspi.SECPKG_CRED_OUTBOUND, &ai)
+	return acquireCredentials(sspi.SECPKG_CRED_OUTBOUND, ai)
 }
 
 // AcquireServerCredentials acquires server credentials that will
 // be used to authenticate client.
 func AcquireServerCredentials() (*sspi.Credentials, error) {
 	return acquireCredentials(sspi.SECPKG_CRED_INBOUND, nil)
-}
-
-func updateContext(c *sspi.Context, dst, src []byte) (authCompleted bool, n int, err error) {
-	var inBuf, outBuf [1]sspi.SecBuffer
-	inBuf[0].Set(sspi.SECBUFFER_TOKEN, src)
-	inBufs := &sspi.SecBufferDesc{
-		Version:      sspi.SECBUFFER_VERSION,
-		BuffersCount: 1,
-		Buffers:      &inBuf[0],
-	}
-	outBuf[0].Set(sspi.SECBUFFER_TOKEN, dst)
-	outBufs := &sspi.SecBufferDesc{
-		Version:      sspi.SECBUFFER_VERSION,
-		BuffersCount: 1,
-		Buffers:      &outBuf[0],
-	}
-	ret := c.Update(nil, outBufs, inBufs)
-	switch ret {
-	case sspi.SEC_E_OK:
-		// session established -> return success
-		return true, int(outBuf[0].BufferSize), nil
-	case sspi.SEC_I_COMPLETE_NEEDED, sspi.SEC_I_COMPLETE_AND_CONTINUE:
-		ret = sspi.CompleteAuthToken(c.Handle, outBufs)
-		if ret != sspi.SEC_E_OK {
-			return false, 0, ret
-		}
-	case sspi.SEC_I_CONTINUE_NEEDED:
-	default:
-		return false, 0, ret
-	}
-	return false, int(outBuf[0].BufferSize), nil
 }
 
 // ClientContext is used by the client to manage all steps of NTLM negotiation.
@@ -126,7 +75,7 @@ type ClientContext struct {
 func NewClientContext(cred *sspi.Credentials) (*ClientContext, []byte, error) {
 	negotiate := make([]byte, PackageInfo.MaxToken)
 	c := sspi.NewClientContext(cred, sspi.ISC_REQ_CONNECTION)
-	authCompleted, n, err := updateContext(c, negotiate, nil)
+	authCompleted, n, err := common.UpdateContext(c, negotiate, nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -160,7 +109,7 @@ func (c *ClientContext) Expiry() time.Time {
 // authenticate message to be returned to the server.
 func (c *ClientContext) Update(challenge []byte) ([]byte, error) {
 	authenticate := make([]byte, PackageInfo.MaxToken)
-	authCompleted, n, err := updateContext(c.sctxt, authenticate, challenge)
+	authCompleted, n, err := common.UpdateContext(c.sctxt, authenticate, challenge, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +146,7 @@ type ServerContext struct {
 func NewServerContext(cred *sspi.Credentials, negotiate []byte) (*ServerContext, []byte, error) {
 	challenge := make([]byte, PackageInfo.MaxToken)
 	c := sspi.NewServerContext(cred, sspi.ASC_REQ_CONNECTION)
-	authCompleted, n, err := updateContext(c, challenge, negotiate)
+	authCompleted, n, err := common.UpdateContext(c, challenge, negotiate, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -229,7 +178,7 @@ func (c *ServerContext) Expiry() time.Time {
 // Update completes server part of NTLM negotiation c. It uses
 // authenticate message received from the client.
 func (c *ServerContext) Update(authenticate []byte) error {
-	authCompleted, n, err := updateContext(c.sctxt, nil, authenticate)
+	authCompleted, n, err := common.UpdateContext(c.sctxt, nil, authenticate, nil)
 	if err != nil {
 		return err
 	}
