@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build windows
 // +build windows
 
 package negotiate_test
@@ -29,8 +30,12 @@ var (
 )
 
 func TestPackageInfo(t *testing.T) {
-	if negotiate.PackageInfo.Name != "Negotiate" {
-		t.Fatalf(`invalid Negotiate package name of %q, "Negotiate" is expected.`, negotiate.PackageInfo.Name)
+	pkgInfo, err := negotiate.GetPackageInfo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pkgInfo.Name != "Negotiate" {
+		t.Fatalf(`invalid Negotiate package name of %q, "Negotiate" is expected.`, pkgInfo.Name)
 	}
 }
 
